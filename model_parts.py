@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 import math 
+from utils import preprocess
 
 class LayerNorm(nn.Module):
     """ LayerNorm but with an optional bias. PyTorch doesn't support simply bias=False """
@@ -96,3 +97,81 @@ class Block(nn.Module):
         return x
     
 
+# Embedding Input Data + Position Embs
+class Encoder(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+
+        self.config = config
+        self.embedding_layer = nn.Linear(self.config.n_obj * self.config.n_coord, self.config.n_emb)
+        self.pos_embedding = nn.Embedding(config.n_t, config.n_emb) # position embedding
+
+
+    def forward(self, data_batch):
+        all_polys, invalid_polys = preprocess(data_batch=data_batch) # (bs, T, M, 3) , (bs, M)
+        #print(all_polys.shape)
+        Bs, T, N_obj, _ = all_polys.size()
+        
+        # Flatten the last two dimensions
+        x = all_polys.reshape(Bs, T, -1)  # shape becomes (Bs, T, M*3)
+        #print(x.shape)
+        # Apply the embedding layer to each time step
+        x = self.embedding_layer(x)  # shape becomes (Bs, T, Emb_dim)
+
+        pos = torch.arange(0, self.config.n_t, dtype=torch.long, device=self.config.device) # vector T
+        pos_emb = self.pos_embedding(pos) # position embeddings of shape (T, n_emb)
+        #print(pos_emb.shape)
+        return (x + pos_emb)
+    
+class Transformer(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+        self.transformer = nn.ModuleDict(dict(
+            drop = nn.Dropout(config.dropout),
+            h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
+            ln_f = LayerNorm(config.n_emb, bias=config.bias),
+        ))
+
+    def forward(self, x):
+        x = self.transformer.drop(x)
+        for block in self.transformer.h:
+            x = block(x)
+        x = self.transformer.ln_f(x)
+        return x 
+
+class Avg_Pool_Decoder(nn.Module):
+    def __init__(self, 
+                 config, 
+                 num_modes: int = 3, 
+                 future_steps: int = 50):
+        super().__init__()
+
+        self.config = config
+        self.num_modes = num_modes
+        self.future_steps = future_steps
+        self.input_dim = config.n_emb
+        self.output_dim = config.output_size
+        self.linear = nn.Linear(self.input_dim, self.output_dim)
+
+    def forward(self, x):
+        # Assuming x is of shape (bs, T, Emb)
+        # Apply average pooling across the sequence dimension
+        x_pooled = torch.mean(x, dim=1)  # Shape becomes (bs, Emb)
+
+        # Apply a linear transformation
+        x_transformed = self.linear(x_pooled)  # Shape becomes (bs, Out_dim) - (bs, 303)
+
+        #bs, future_len, num_coords = gt.shape
+        # Reshape pred to (bs, num_modes, future_len, num_coords)
+        coord_pred = x_transformed[:, :self.num_modes * self.future_steps * 2].reshape(bs, self.num_modes, self.future_steps, 2)
+        #print(coord_pred.shape)
+        # Extract confidences from the last 3 values in pred
+        confidences = x_transformed[:, -self.num_modes:].reshape(bs, self.num_modes) # Bs, 3
+        # Applying softmax for each batch
+        conf = F.softmax(confidences, dim=1)
+        #print(conf.shape)
+        return coord_pred, conf
+        
+
+        

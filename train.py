@@ -1,30 +1,41 @@
 import os
 from l5kit.configs import load_config_data
-from l5kit.data import ChunkedDataset, LocalDataManager
-from l5kit.dataset import EgoAgentDatasetVectorized
-from l5kit.vectorization.vectorizer_builder import build_vectorizer
-from torch.utils.data import DataLoader
 import torch
-
-"""
-os.environ["L5KIT_DATA_FOLDER"] = "/home/alexay/lyft-attn/DATASET_DIR/"
-# define local data manager
-dm = LocalDataManager(None)
-# load the experiment config
-cfg = load_config_data("config.yaml")
-print("Configuration loaded.")
-vectorizer = build_vectorizer(cfg, dm)
-train_zarr = ChunkedDataset(dm.require(cfg["train_data_loader"]["key"])).open()
-train_dataset = EgoAgentDatasetVectorized(cfg, train_zarr, vectorizer)
-batch_size = 1
-train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
-"""
-#data_batch = next(iter(train_dataloader))
-data_batch = torch.load('data_batch.pt')
+import torch.nn as nn
 from config import GPTConfig
-from models import motionGPT
+from lightning.pytorch.loggers import TensorBoardLogger
+import lightning as L
+from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+from lightning.pytorch.callbacks import ModelSummary
+from pl_models import MotionTransformer
 
 
 config = GPTConfig()
-model = motionGPT(config=config)
-out = model(data_batch)
+os.environ["L5KIT_DATA_FOLDER"] = confisg.dataset_path #"/home/alexay/lyft-attn/DATASET_DIR/"
+# load the experiment config
+cfg = load_config_data("./config.yaml")
+
+
+model = MotionTransformer(config=config, cfg=cfg)
+if config.device == 'cuda':
+    model = torch.compile(model)
+
+
+logger = TensorBoardLogger(save_dir="")
+trainer = L.Trainer(logger=logger,                      
+                     max_epochs=config.max_epochs,  
+                    # precision="16-mixed",                     
+                     accelerator="auto",                    
+                     devices=config.device,                      
+                     strategy="auto",
+                     fast_dev_run=True, # debug
+                     limit_train_batches=0.1, # 10% data - debug
+                     limit_val_batches=0.1, # 10% data - debug
+                     num_sanity_val_steps=2, # 2 val steps debug
+
+                     callbacks=[EarlyStopping(monitor="val_loss", mode="min", verbose=True),
+                                ModelSummary(max_depth=-1)])
+print('---')
+trainer.fit(model=model)
+print('train complete')
+
