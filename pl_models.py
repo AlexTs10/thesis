@@ -15,12 +15,17 @@ class MotionTransformer(L.LightningModule):
         self.config = config 
         self.cfg = cfg
         self.torch_model = motionGPT(self.config)    
-
+    
     def training_step(self, batch, batch_idx):
-
+        # Remove the second dimension from each tensor in the batch if its size is 1
+        for key in batch.keys():
+            # Check if the second dimension is 1
+            if batch[key].dim() > 1 and batch[key].size(1) == 1:
+                batch[key] = batch[key].squeeze(1)
+    
         # Move batch to the same device as the model
         batch = {k: v.to(self.device) for k, v in batch.items()}
-
+    
         # forward pass
         pred, conf = self.torch_model(batch)
         # loss calculation
@@ -28,9 +33,10 @@ class MotionTransformer(L.LightningModule):
                          pred=pred, 
                          confidences=conf, 
                          avails=batch['target_availabilities'])
-
+    
         self.log("train_loss", loss)
         return loss
+
     
     def validation_step(self, batch, batch_idx):
 
