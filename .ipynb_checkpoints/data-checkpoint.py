@@ -1,19 +1,18 @@
 from l5kit.data import ChunkedDataset, LocalDataManager
 from l5kit.dataset import EgoAgentDatasetVectorized
 from l5kit.vectorization.vectorizer_builder import build_vectorizer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader,Dataset
 from pathlib import Path
 import numpy as np
 import torch
 import os 
+import lightning as l
 
 def train_dataset_load(cfg, subset_fraction = 1.0):
     dm = LocalDataManager(None)
     vectorizer = build_vectorizer(cfg, dm)
     train_zarr = ChunkedDataset(dm.require(cfg["train_data_loader"]["key"])).open()
-    train_dataset_full = EgoAgentDatasetVectorized(cfg, train_zarr, vectorizer)
-    train_dataset = torch.utils.data.Subset(train_dataset_full, range(int(len(train_dataset_full)* subset_fraction)))
-
+    train_dataset = EgoAgentDatasetVectorized(cfg, train_zarr, vectorizer)
     return train_dataset
 
 
@@ -27,7 +26,61 @@ def val_dataset_load(cfg, subset_fraction = 1.0):
     eval_mask_path = str(Path(eval_base_path) / "mask.npz")
     eval_zarr = ChunkedDataset(eval_zarr_path).open()
     eval_mask = np.load(eval_mask_path)["arr_0"]
-    val_dataset_full = EgoAgentDatasetVectorized(cfg, eval_zarr, vectorizer, agents_mask=eval_mask, eval_mode=True)
-    val_dataset = torch.utils.data.Subset(val_dataset_full, range(int(len(val_dataset_full)* subset_fraction)))
-
+    val_dataset = EgoAgentDatasetVectorized(cfg, eval_zarr, vectorizer, agents_mask=eval_mask, eval_mode=True)
     return val_dataset
+
+
+
+class DataModule(l.LightningDataModule):
+    def __init__(self, cfg, config):
+        super().__init__()
+        self.config = config 
+        self.cfg = cfg
+
+    def train_dataloader(self):
+        train_dataset = train_dataset_load(cfg=self.cfg)
+        return DataLoader(train_dataset, 
+                          batch_size=self.config.batch_size,
+                          num_workers=self.config.num_workers,
+                          pin_memory=True)
+
+    def val_dataloader(self):
+        
+        # setup val dataset - only first one.
+        #val_dataset_setup(self.cfg)
+       # load val dataset 
+        val_dataset = val_dataset_load(cfg=self.cfg)
+        return DataLoader(val_dataset, 
+                          batch_size=self.config.batch_size,
+                          num_workers=self.config.num_workers,
+                          pin_memory=True)
+ 
+
+
+class PrecompDataset(Dataset):
+    def __init__(self, folder_path):
+        self.folder_path = folder_path
+        self.files = [file for file in os.listdir(folder_path) if file.endswith('.pt')]
+
+    def __len__(self):
+        return len(self.files)
+
+    def __getitem__(self, idx):
+        file_path = os.path.join(self.folder_path, self.files[idx])
+        data = torch.load(file_path)
+        return data
+
+
+
+class PreCompDataModule(l.LightningDataModule):
+    def __init__(self):
+        super().__init__()
+    
+    def train_dataloader(self):
+        train_dataset = PrecompDataset("/workspace/precomp_data")
+        return DataLoader(train_dataset, 
+                          batch_size=32, 
+                          num_workers=16, 
+                          pin_memory=True)
+
+

@@ -21,13 +21,14 @@ class GPTConfig:
     dropout: float = 0.0
     bias: bool = True # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
 
-    dataset_path: str = "/workspace/DATASET"
+    dataset_path: str = "/workspace/DATASET_EDITED"
     n_coord = 3
     output_size: int = 303 ## ???
     n_obj: int = 161 # agents + map
     n_t: int = 20
 
     batch_size: int = 8
+    num_workers: int = 16
     max_epochs: int = 10
     
 #config = GPTConfig()

@@ -17,7 +17,10 @@ class MotionTransformer(L.LightningModule):
         self.torch_model = motionGPT(self.config)    
 
     def training_step(self, batch, batch_idx):
-        
+
+        # Move batch to the same device as the model
+        batch = {k: v.to(self.device) for k, v in batch.items()}
+
         # forward pass
         pred, conf = self.torch_model(batch)
         # loss calculation
@@ -30,6 +33,10 @@ class MotionTransformer(L.LightningModule):
         return loss
     
     def validation_step(self, batch, batch_idx):
+
+        # Move batch to the same device as the model
+        batch = {k: v.to(self.device) for k, v in batch.items()}
+
         # forward pass
         pred, conf = self.torch_model(batch)
         # loss calculation
@@ -57,16 +64,3 @@ class MotionTransformer(L.LightningModule):
             }
         }
     
-    def train_dataloader(self):
-        train_dataset = train_dataset_load(cfg=self.cfg)
-        return DataLoader(train_dataset, batch_size=self.config.batch_size)
-
-    def val_dataloader(self):
-        
-        # setup val dataset - only first one.
-        val_dataset_setup(self.cfg)
-       # load val dataset 
-        val_dataset = val_dataset_load(cfg=self.cfg)
-        return DataLoader(val_dataset, batch_size=self.config.batch_size)
- 
-

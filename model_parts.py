@@ -108,7 +108,7 @@ class Encoder(nn.Module):
 
 
     def forward(self, data_batch):
-        all_polys, invalid_polys = preprocess(data_batch=data_batch) # (bs, T, M, 3) , (bs, M)
+        all_polys, invalid_polys = preprocess(data_batch=data_batch, device=self.config.device) # (bs, T, M, 3) , (bs, M)
         #print(all_polys.shape)
         Bs, T, N_obj, _ = all_polys.size()
         
@@ -156,6 +156,7 @@ class Avg_Pool_Decoder(nn.Module):
 
     def forward(self, x):
         # Assuming x is of shape (bs, T, Emb)
+        bs, T, Emb = x.shape
         # Apply average pooling across the sequence dimension
         x_pooled = torch.mean(x, dim=1)  # Shape becomes (bs, Emb)
 

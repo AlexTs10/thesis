@@ -29,7 +29,7 @@ def criterion(gt, pred, confidences, avails, num_modes=3):
     assert pred.shape == (bs, num_modes, future_len, num_coords)
     assert confidences.shape == (bs, num_modes)
     assert avails.shape == (bs, future_len)
-    assert np.allclose(torch.sum(confidences, axis=1).detach().numpy(), 1), "confidences should sum to 1"
+    assert np.allclose(torch.sum(confidences, axis=1).cpu().detach().numpy(), 1), "confidences should sum to 1"
     
     # Further processing as in the original function...
     # Expand dimensions for gt: shape becomes (bs, 1, future_len, num_coords)
@@ -52,11 +52,11 @@ def criterion(gt, pred, confidences, avails, num_modes=3):
     error = -torch.log(torch.sum(torch.exp(error - max_value.unsqueeze(-1)), dim=-1)) - max_value
     return error.mean()
 
-def preprocess(data_batch):
+def preprocess(data_batch, device):
 
     # normalization buffers
-    agent_std =  torch.tensor([1.6919, 0.0365, 0.0218])
-    other_agent_std = torch.tensor([33.2631, 21.3976, 1.5490])
+    agent_std =  torch.tensor([1.6919, 0.0365, 0.0218]).to(device)
+    other_agent_std = torch.tensor([33.2631, 21.3976, 1.5490]).to(device)
 
     # ==== LANES ====
     # batch size x num lanes x num vectors x num features
