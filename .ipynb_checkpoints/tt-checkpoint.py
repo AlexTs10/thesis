@@ -19,17 +19,18 @@ vectorizer = build_vectorizer(cfg, dm)
 train_zarr = ChunkedDataset(dm.require(cfg["train_data_loader"]["key"])).open()
 train_dataset = EgoAgentDatasetVectorized(cfg, train_zarr, vectorizer)
 batch_size = 1
-train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=8)
+train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=32, shuffle=True)
 
 
 folder = '/workspace/precomp_data'
 os.makedirs(folder, exist_ok=True)
 counter = 0
+total = 80000
 # Wrap your DataLoader with tqdm for a progress bar
-for data in tqdm(iter(train_dataloader), total=10000):
+for data in tqdm(iter(train_dataloader), total=total):
     torch.save(data, os.path.join(folder, f'{counter}.pt'))
     counter += 1
-    if counter == 10000:
+    if counter == total:
         break
 
 

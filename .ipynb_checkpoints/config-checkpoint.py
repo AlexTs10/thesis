@@ -15,9 +15,9 @@ class GPTConfig:
     def __post_init__(self):
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-    n_layer: int = 3 #12
-    n_head: int = 12
-    n_emb: int = 12
+    n_layer: int = 12 #3
+    n_head: int = 12 
+    n_emb: int = 768 # 24 
     dropout: float = 0.0
     bias: bool = True # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
 
@@ -27,8 +27,8 @@ class GPTConfig:
     n_obj: int = 161 # agents + map
     n_t: int = 20
 
-    batch_size: int = 8
+    batch_size: int = 32
     num_workers: int = 16
-    max_epochs: int = 10
+    max_epochs: int = 25
     
 #config = GPTConfig()

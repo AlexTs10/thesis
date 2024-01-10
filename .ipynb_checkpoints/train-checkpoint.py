@@ -38,8 +38,9 @@ trainer = L.Trainer(logger=logger,
                      #limit_val_batches=0.1, # 10% data - debug
                      #num_sanity_val_steps=2, # 2 val steps debug
 
-                     callbacks=[EarlyStopping(monitor="val_loss", mode="min", verbose=True),
-                                ModelSummary(max_depth=-1)])
+                     #callbacks=[EarlyStopping(monitor="val_loss", mode="min", verbose=True),
+                     #           ModelSummary(max_depth=-1)]
+                   )
 print('---')
 trainer.fit(model=model, 
             #datamodule=data_module,
