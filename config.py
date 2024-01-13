@@ -17,11 +17,11 @@ class GPTConfig:
 
     n_layer: int = 12 #3
     n_head: int = 12 
-    n_emb: int = 768 # 24 
+    n_emb: int = 768 # 24 , 768
     dropout: float = 0.0
     bias: bool = True # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
 
-    dataset_path: str = "/workspace/DATASET_EDITED"
+    dataset_path: str = "/home/alexay/lyft-attn/TEST_DATASET"
     n_coord = 3
     output_size: int = 303 ## ???
     n_obj: int = 161 # agents + map

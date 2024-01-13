@@ -12,9 +12,12 @@ from tqdm import tqdm
 from tempfile import gettempdir
 from l5kit.evaluation import write_pred_csv
 from l5kit.geometry import transform_points
+import yaml 
+import glob 
 
  ## -- -- -- ##
-checkpoint_path = "workspace/thesis/lightning_logs/version_11/checkpoints/"
+checkpoint_path = "/home/alexay/lyft-attn/thesis/lightning_logs/version_13/checkpoints/*"
+#h_param_yaml_path = "lightning_logs/version_11/hparams.yaml"
 # load the experiment config
 cfg = load_config_data("./config.yaml")
 config = GPTConfig()
@@ -30,8 +33,9 @@ test_dataset = EgoAgentDatasetVectorized(cfg, test_zarr, vectorizer, agents_mask
 
 test_dataloader = DataLoader(test_dataset, batch_size=config.batch_size)
 
-
-model = MotionTransformer.load_from_checkpoint(checkpoint_path=checkpoint_path, cfg=cfg, config=config)
+#with open(h_param_yaml_path, 'r') as file:
+#    hyperparams = yaml.safe_load(file)
+model = MotionTransformer.load_from_checkpoint(checkpoint_path=glob.glob(checkpoint_path)[0], map_location=torch.device('cpu')) #, cfg=cfg, config=config)
 model.eval()
 torch.set_grad_enabled(False)
 # ----------------------------- #
