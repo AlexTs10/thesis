@@ -2,7 +2,7 @@ from typing import Any
 import lightning as L
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
-from models import motionGPT
+from old_version.models import motionGPT
 from utils import criterion
 from data import train_dataset_load, val_dataset_load
 from utils import val_dataset_setup

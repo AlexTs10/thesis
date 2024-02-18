@@ -1,5 +1,5 @@
 import torch.nn as nn
-from model_parts import Encoder, Transformer, Avg_Pool_Decoder
+from old_version.model_parts import Encoder, Transformer, Avg_Pool_Decoder
 from utils import preprocess
 
 class motionGPT(nn.Module):

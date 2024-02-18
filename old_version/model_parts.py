@@ -123,6 +123,45 @@ class Encoder(nn.Module):
         #print(pos_emb.shape)
         return (x + pos_emb)
     
+
+
+class SingleEncoder(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+
+        self.config = config
+        # This layer will embed each (M, 3) into an embedding space
+        self.individual_embedding_layer = nn.Linear(3, self.config.n_emb)
+        # Note: Depending on your specific requirements, you might want to adjust the output size of this layer
+        self.embedding_layer = nn.Linear(self.config.n_obj * self.config.n_emb, self.config.n_emb)
+        self.pos_embedding = nn.Embedding(config.n_t, config.n_emb) # position embedding
+
+    def forward(self, data_batch):
+        all_polys, invalid_polys = preprocess(data_batch=data_batch, device=self.config.device) # (bs, T, M, 3)
+        Bs, T, N_obj, _ = all_polys.size()
+        
+        # New approach: Embed each (M, 3) separately for each T, then concatenate
+        embedded_polys = []
+        for t in range(T):
+            # Embed each (M, 3) at time t
+            embedded_t = self.individual_embedding_layer(all_polys[:, t, :, :])  # shape becomes (Bs, M, Emb_dim)
+            embedded_polys.append(embedded_t.unsqueeze(1))
+
+        # Concatenate embeddings for all time steps, shape becomes (Bs, T, M*Emb_dim)
+        x = torch.cat(embedded_polys, dim=1)  # Note: Adjust dimension if necessary
+        
+        # Flatten the last two dimensions
+        x = x.reshape(Bs, T, -1)  # shape becomes (Bs, T, M*Emb_dim)
+        
+        # Apply the embedding layer to the concatenated embeddings
+        x = self.embedding_layer(x)  # shape becomes (Bs, T, Emb_dim)
+
+        pos = torch.arange(0, self.config.n_t, dtype=torch.long, device=self.config.device) # vector T
+        pos_emb = self.pos_embedding(pos) # position embeddings of shape (T, n_emb)
+        
+        return (x + pos_emb)
+
+
 class Transformer(nn.Module):
     def __init__(self, config):
         super().__init__()

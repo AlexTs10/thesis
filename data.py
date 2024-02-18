@@ -71,16 +71,20 @@ class PrecompDataset(Dataset):
         return data
 
 
-
 class PreCompDataModule(l.LightningDataModule):
-    def __init__(self):
+    def __init__(self, data_folder='precomp_dataset', train_folder='train_data', val_folder='val_data', batch_size: int = 32):
         super().__init__()
-    
+        self.train_folder_path = os.path.join(data_folder, train_folder)
+        self.val_folder_path = os.path.join(data_folder, val_folder)
+        self.batch_size = batch_size
+
     def train_dataloader(self):
-        train_dataset = PrecompDataset("/workspace/precomp_data")
-        return DataLoader(train_dataset, 
-                          batch_size=32, 
-                          num_workers=16, 
-                          pin_memory=True)
+        train_dataset = PrecompDataset(self.train_folder_path)
+        return DataLoader(train_dataset, batch_size=self.batch_size, num_workers=16, pin_memory=True)
+
+    def val_dataloader(self):
+        val_dataset = PrecompDataset(self.val_folder_path)
+        return DataLoader(val_dataset, batch_size=self.batch_size, num_workers=16, pin_memory=True)
+
 
 

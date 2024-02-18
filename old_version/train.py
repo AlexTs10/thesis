@@ -7,7 +7,7 @@ from lightning.pytorch.loggers import TensorBoardLogger
 import lightning as L
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks import ModelSummary
-from pl_models import MotionTransformer
+from old_version.pl_models import MotionTransformer
 from data import DataModule
 from data import PrecompDataset
 from torch.utils.data import DataLoader, Dataset

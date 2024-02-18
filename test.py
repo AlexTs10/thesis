@@ -6,7 +6,7 @@ import os
 import numpy as np 
 from torch.utils.data import DataLoader
 from config import GPTConfig
-from pl_models import MotionTransformer
+from old_version.pl_models import MotionTransformer
 import torch 
 from tqdm import tqdm 
 from tempfile import gettempdir
